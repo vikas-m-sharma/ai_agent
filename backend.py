@@ -96,11 +96,65 @@
 #     uvicorn.run(app, host="127.0.0.1", port=9999)
 
 
+# from fastapi import FastAPI, status
+# from fastapi.responses import JSONResponse
+# from pydantic import BaseModel
+# from typing import List
+# from ai_agent import get_response_from_ai_agent
+
+
+# class RequestState(BaseModel):
+#     model_name: str
+#     model_provider: str
+#     system_prompt: str
+#     messages: List[str]
+#     allow_search: bool
+#     session_id: str
+
+
+# ALLOWED_MODEL_NAMES = [
+#     "llama3-70b-8192",
+#     "mixtral-8x7b-32768",
+#     "llama-3.3-70b-versatile",
+#     "gpt-4o-mini"
+# ]
+
+# app = FastAPI(title="Inquiro AI Agent")
+
+
+# @app.get("/")
+# def root():
+#     return {"message": "Inquiro AI Agent backend is running!"}
+
+
+# @app.get("/ping")
+# def ping():
+#     return {"message": "Server is live!"}
+
+
+# @app.post("/chat")
+# def chat_endpoint(request: RequestState):
+#     if request.model_name not in ALLOWED_MODEL_NAMES:
+#         return JSONResponse(
+#             content={"error": "Invalid model name."},
+#             status_code=status.HTTP_400_BAD_REQUEST
+#         )
+
+#     response = get_response_from_ai_agent(
+#         llm_id=request.model_name,
+#         query=request.messages,
+#         allow_search=request.allow_search,
+#         system_prompt=request.system_prompt,
+#         provider=request.model_provider,
+#         session_id=request.session_id
+#     )
+#     return JSONResponse(content={"response": response}, status_code=200)
 from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List
 from ai_agent import get_response_from_ai_agent
+import os
 
 
 class RequestState(BaseModel):
@@ -110,6 +164,7 @@ class RequestState(BaseModel):
     messages: List[str]
     allow_search: bool
     session_id: str
+    api_key: str = None   # Accept API key from frontend
 
 
 ALLOWED_MODEL_NAMES = [
@@ -122,23 +177,18 @@ ALLOWED_MODEL_NAMES = [
 app = FastAPI(title="Inquiro AI Agent")
 
 
-@app.get("/")
-def root():
-    return {"message": "Inquiro AI Agent backend is running!"}
-
-
-@app.get("/ping")
-def ping():
-    return {"message": "Server is live!"}
-
-
 @app.post("/chat")
 def chat_endpoint(request: RequestState):
     if request.model_name not in ALLOWED_MODEL_NAMES:
         return JSONResponse(
-            content={"error": "Invalid model name."},
+            content={
+                "error": "Invalid model name. Kindly select a valid AI model."},
             status_code=status.HTTP_400_BAD_REQUEST
         )
+
+    # If using Groq provider, use API key from environment or request
+    api_key = request.api_key if request.api_key else os.environ.get(
+        "GROQ_API_KEY", "")
 
     response = get_response_from_ai_agent(
         llm_id=request.model_name,
@@ -146,6 +196,8 @@ def chat_endpoint(request: RequestState):
         allow_search=request.allow_search,
         system_prompt=request.system_prompt,
         provider=request.model_provider,
-        session_id=request.session_id
+        session_id=request.session_id,
+        api_key=api_key   # Pass key to AI agent
     )
+
     return JSONResponse(content={"response": response}, status_code=200)
