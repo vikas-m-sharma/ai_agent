@@ -91,6 +91,6 @@ def chat_endpoint(request: RequestState):
     return JSONResponse(content={"response": response}, status_code=200)
 
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=9999)
+# if __name__ == "__main__":
+#     import uvicorn
+#     uvicorn.run(app, host="127.0.0.1", port=9999)
