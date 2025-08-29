@@ -81,40 +81,133 @@
 #             except Exception as e:
 #                 st.error(f"Request failed: {e}")
 
+# import streamlit as st
+# import requests
+# import uuid
+
+# # Initialize session
+# if "session_id" not in st.session_state:
+#     st.session_state.session_id = str(uuid.uuid4())[:8]
+# if "chat_history" not in st.session_state:
+#     st.session_state.chat_history = []
+
+# # Sidebar options
+# with st.sidebar:
+#     st.text_input(
+#         "Session ID:", value=st.session_state.session_id, disabled=True)
+#     provider = st.radio("Model Provider:", ["Groq", "OpenAI"])
+#     model = st.selectbox(
+#         "Choose Model:",
+#         ["llama-3.3-70b-versatile",
+#             "mixtral-8x7b-32768"] if provider == "Groq" else ["gpt-4o-mini"]
+#     )
+#     system_prompt = st.text_area(
+#         "AI Role Prompt:", height=80, placeholder="You're a helpful AI assistant.")
+#     allow_search = st.checkbox("Enable Web Search", value=True)
+
+# # Display chat
+# for role, message in st.session_state.chat_history:
+#     with st.chat_message(role):
+#         st.markdown(message)
+
+# # User input
+# user_input = st.chat_input("Type your message...")
+
+# if user_input:
+#     st.session_state.chat_history.append(("user", user_input))
+#     payload = {
+#         "model_name": model,
+#         "model_provider": provider,
+#         "system_prompt": system_prompt,
+#         "messages": [user_input],
+#         "allow_search": allow_search,
+#         "session_id": st.session_state.session_id
+#     }
+
+#     backend_url = "https://ai-agent-mqed.onrender.com/chat"  # Your Render backend URL
+#     try:
+#         response = requests.post(backend_url, json=payload)
+#         if response.status_code == 200:
+#             reply = response.json().get("response", "No response.")
+#             st.session_state.chat_history.append(("assistant", reply))
+#         else:
+#             st.error(f"Error {response.status_code}: {response.text}")
+#     except Exception as e:
+#         st.error(f"Request failed: {e}")
+
 import streamlit as st
 import requests
 import uuid
 
+# -------------------------------
 # Initialize session
+# -------------------------------
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())[:8]
+
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
+# -------------------------------
 # Sidebar options
+# -------------------------------
 with st.sidebar:
+    st.title("Inquiro AI")
+    st.caption("Your smart assistant for real-time, web-aware conversations.")
+    st.markdown("---")
+
+    # Display session ID
     st.text_input(
         "Session ID:", value=st.session_state.session_id, disabled=True)
+
+    # Reset chat
+    if st.button("Start New Chat"):
+        st.session_state.chat_history = []
+        st.session_state.session_id = str(uuid.uuid4())[:8]
+        st.experimental_rerun()
+
+    st.markdown("---")
+
+    # Model provider & selection
     provider = st.radio("Model Provider:", ["Groq", "OpenAI"])
     model = st.selectbox(
         "Choose Model:",
         ["llama-3.3-70b-versatile",
             "mixtral-8x7b-32768"] if provider == "Groq" else ["gpt-4o-mini"]
     )
+
+    # AI Role Prompt
     system_prompt = st.text_area(
-        "AI Role Prompt:", height=80, placeholder="You're a helpful AI assistant.")
+        "AI Role Prompt:",
+        height=80,
+        placeholder="You're a helpful assistant with access to real-time knowledge."
+    )
+
+    # Web search toggle
     allow_search = st.checkbox("Enable Web Search", value=True)
 
-# Display chat
+    st.markdown("---")
+    st.markdown("Built by **Vikas Sharma**")
+
+# -------------------------------
+# Display chat history
+# -------------------------------
 for role, message in st.session_state.chat_history:
     with st.chat_message(role):
         st.markdown(message)
 
+# -------------------------------
 # User input
-user_input = st.chat_input("Type your message...")
+# -------------------------------
+user_input = st.chat_input("Type your message here...")
 
 if user_input:
+    # Append user message to history
     st.session_state.chat_history.append(("user", user_input))
+    with st.chat_message("user"):
+        st.markdown(user_input)
+
+    # Prepare payload
     payload = {
         "model_name": model,
         "model_provider": provider,
@@ -124,13 +217,17 @@ if user_input:
         "session_id": st.session_state.session_id
     }
 
-    backend_url = "https://ai-agent-mqed.onrender.com/chat"  # Your Render backend URL
-    try:
-        response = requests.post(backend_url, json=payload)
-        if response.status_code == 200:
-            reply = response.json().get("response", "No response.")
-            st.session_state.chat_history.append(("assistant", reply))
-        else:
-            st.error(f"Error {response.status_code}: {response.text}")
-    except Exception as e:
-        st.error(f"Request failed: {e}")
+    # Call live backend
+    backend_url = "https://ai-agent-mqed.onrender.com/chat"
+    with st.chat_message("assistant"):
+        with st.spinner("Thinking..."):
+            try:
+                response = requests.post(backend_url, json=payload)
+                if response.status_code == 200:
+                    reply = response.json().get("response", "No response.")
+                    st.session_state.chat_history.append(("assistant", reply))
+                    st.markdown(reply)
+                else:
+                    st.error(f"Error {response.status_code}: {response.text}")
+            except Exception as e:
+                st.error(f"Request failed: {e}")
